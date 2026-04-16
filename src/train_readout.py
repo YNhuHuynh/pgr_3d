@@ -167,11 +167,18 @@ def prepare_unet_inputs(
     image_embeddings = clip_bv.repeat(2, 1, 1)                    # [2*BV, 1, 768]
 
     # --- Camera embeddings (class_labels) ---
-    # Wonder3D uses sincos of elevation/azimuth for 6 views, dim=10
-    # We load the pre-computed camera embedding from the pipeline
-    cam_emb = pipe.camera_embedding.to(device)                     # [6, 10]
-    cam_bv  = cam_emb.unsqueeze(0).expand(B, V, 10).reshape(BV, 10)  # [BV, 10]
-    camera_embeddings = cam_bv.repeat(2, 1)                         # [2*BV, 10]
+    # pipe.camera_embedding is [2*V, 5]: raw (elevation, delta_e, delta_az, domain_ind×2)
+    # for 2 domains (normal rows 0..V-1, rgb rows V..2V-1).
+    # prepare_camera_embedding applies sincos to get dim=10.
+    # We replicate that logic here without the CFG-doubling step.
+    raw_cam  = pipe.camera_embedding.to(device=device, dtype=torch.float32)  # [2*V, 5]
+    cam_10d  = torch.cat([torch.sin(raw_cam), torch.cos(raw_cam)], dim=-1)   # [2*V, 10]
+    cam_norm = cam_10d[:V]     # [V, 10] — normal domain views
+    cam_rgb  = cam_10d[V:2*V]  # [V, 10] — rgb domain views
+    # Expand for batch size B, then lay out as [normal(BV), rgb(BV)]
+    cam_norm_bv = cam_norm.unsqueeze(0).expand(B, V, 10).reshape(BV, 10)  # [BV, 10]
+    cam_rgb_bv  = cam_rgb.unsqueeze(0).expand(B, V, 10).reshape(BV, 10)   # [BV, 10]
+    camera_embeddings = torch.cat([cam_norm_bv, cam_rgb_bv], dim=0)        # [2*BV, 10]
 
     return latent_model_input, t_2bv, image_embeddings, camera_embeddings
 

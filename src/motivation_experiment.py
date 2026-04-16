@@ -221,23 +221,23 @@ def run_denoising_with_probe(
             step_output = pipe.scheduler.step(noise_pred, t, latents, **extra_step_kwargs)
             latents = step_output.prev_sample
 
-            # ---- Probe: decode x̂_0 and measure CLIP similarity ----
-            x0_pred = step_output.pred_original_sample   # [V, 4, 32, 32]
-            # Decode: VAE decode expects latents scaled by 1/scaling_factor
-            x0_latents = x0_pred / pipe.vae.config.scaling_factor
+            # ---- Probe: decode x̂_0 RGB domain and measure CLIP similarity ----
+            # pred_original_sample has shape [2*V, 4, h, w] (both domains).
+            # RGB domain = last V rows: [V:2V].
+            x0_pred = step_output.pred_original_sample   # [2*V, 4, 32, 32]
+            x0_rgb  = x0_pred[NUM_VIEWS:]                # [V, 4, 32, 32] — rgb domain
+            x0_latents = x0_rgb / pipe.vae.config.scaling_factor
             decoded = pipe.vae.decode(x0_latents).sample   # [V, 3, 256, 256]
             decoded = ((decoded + 1.0) / 2.0).clamp(0, 1)  # [0,1]
 
-            # Only take the RGB domain (second half after no-CFG layout)
-            # latents is [V=6, 4, h, w]  so all 6 are RGB
             clip_embs = clip_embed_tensor(decoded, device=device)   # [V, 768]
             sims = (clip_embs * clip_input.to(device)).sum(dim=-1)  # [V]
             cosine_sims[i] = sims.cpu().numpy()
 
             probe_step += 1
 
-    # Decode final latents to PIL images
-    final_latents = latents / pipe.vae.config.scaling_factor
+    # Decode final RGB-domain latents to PIL images
+    final_latents = latents[NUM_VIEWS:] / pipe.vae.config.scaling_factor  # [V, 4, h, w]
     final_decoded = pipe.vae.decode(final_latents).sample
     final_decoded = ((final_decoded + 1.0) / 2.0).clamp(0, 1).cpu()
     final_images = [

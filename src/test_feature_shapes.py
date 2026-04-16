@@ -100,7 +100,9 @@ def main():
     # image embeddings: [2*V, 1, 768]
     img_embs  = torch.randn(2 * V, 1, 768, dtype=dtype, device=device)
     # camera embeddings: [2*V, 10]
-    cam_embs  = pipe.camera_embedding[:V].repeat(2, 1).to(device=device, dtype=dtype)
+    # pipe.camera_embedding is [2*V, 5] (raw); UNet expects [2*V, 10] after sin/cos.
+    _raw_cam  = pipe.camera_embedding.to(device=device, dtype=dtype)   # [12, 5]
+    cam_embs  = torch.cat([torch.sin(_raw_cam), torch.cos(_raw_cam)], dim=-1)  # [12, 10]
 
     with extractor:
         with torch.no_grad():
