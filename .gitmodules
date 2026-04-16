@@ -1,0 +1,3 @@
+[submodule "readout_guidance_ref"]
+	path = readout_guidance_ref
+	url = https://github.com/google-research/readout_guidance
