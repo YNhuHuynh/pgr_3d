@@ -41,6 +41,71 @@ Format: at end of each work session, append a dated entry.
 
 ---
 
+### Day 2 — 2026-04-17 (session 2 continuation)
+
+**Planned:** motivation experiment code, guidance inference, eval loop.
+
+**Done:**
+- Implemented `src/motivation_experiment.py`:
+  - Runs Wonder3D denoising loop with a per-step callback
+  - At each step computes predicted x̂_0 (scheduler.pred_original_sample), decodes with VAE,
+    embeds all 6 views with CLIP ViT-L/14
+  - Records cosine_sim(clip_input, clip_step) for each view × each timestep
+  - Outputs: per-object line plots, summary plot (mean ± std), clip_drift_data.csv
+  - Prints Day-3 gate verdict (DRIFT DETECTED / MARGINAL / NO DRIFT) with numeric thresholds
+- Implemented `src/guidance_inference.py`:
+  - `GuidedFeatureExtractor`: non-detaching hook variant to allow autograd through UNet features
+  - `build_guided_pipeline()`: loads frozen Wonder3D pipeline
+  - `compute_guidance_grad()`: computes ∇_{z_t} L_readout via torch.autograd.grad
+  - `run_guided_inference()`: full denoising loop with PGR guidance:
+      ε_guided = ε_θ - σ_t · η · ∇_{z_t} L_readout
+    CFG and PGR are applied sequentially; timestep gating via [t_min, t_max]
+  - `run_eta_sweep()`: convenience wrapper for η ∈ {0, 0.1, 0.5, 1.0, 2.0}
+  - CLI: `python src/guidance_inference.py --front_image ... --head_ckpt ... --eta_sweep`
+- Implemented `src/eval_gso.py`:
+  - Three modes: `metrics_only` (existing meshes), `reconstruct`, `full` (generate+recon+eval)
+  - Per-object: geometry (CD-L1/L2, IoU) + NVS (PSNR/SSIM/LPIPS) metrics
+  - Mesh alignment: pre-rotation from 000.run_won3d.sh conventions, unit-diagonal normalisation
+  - Appends to mesh/nvs CSV files via metrics.py helpers
+  - Aggregate summary printed at end
+- Wrote `scripts/slurm_motivation.sh`: SLURM job for Day-3 motivation experiment (2h, H100)
+
+**Also done (session 3 continuation):**
+- `scripts/slurm_eval_gso.sh`: SLURM eval job; supports metrics_only/reconstruct/full modes;
+  environment vars (MODE/SETUP/ETA/HEAD_CKPT) overridable at sbatch time
+- `scripts/slurm_guidance_sweep.sh`: runs eta ∈ {0.0,0.1,0.5,1.0,2.0} for all 5 test objects;
+  generates multi-view images into `outputs/eta_sweep/{obj}/eta_X/`
+- `src/test_feature_shapes.py`: 6-step sanity check (pipeline load, hook shapes, aggregation
+  shapes, head forward/loss, gradient flow); run before submitting training jobs
+- `scripts/gen_gso_configs.py`: added WEKA→local fallback for front images
+
+**Not done / deferred:**
+- Actually running any jobs (requires GPU allocation)
+- `src/eval_gso.py` NVS section assumes GT renders exist at `gso/{obj}/renders/` — may need
+  to verify actual path on cluster once baseline runs
+
+**Known issues / notes:**
+- `guidance_inference.py` gradient computation runs TWO UNet forward passes per guided step
+  (one no_grad for CFG, one with grad for ∇_{z_t}). Memory use on H100 should be fine for
+  V=6 views at 32×32 latents. If OOM, reduce to single-pass (get eps + grad in one call).
+- `eval_gso.py` uses `transforms3d` for mesh rotation parsing; confirm it's in pgr3d env
+  (it's in 3drav_a100 base — `pip install transforms3d` if missing).
+
+**Next session (Day 3, Apr 18-19):**
+1. Submit baseline: `cd /scratch/s224696943/pgr_3d && sbatch scripts/slurm_baseline_gso.sh`
+2. Submit motivation experiment: `sbatch scripts/slurm_motivation.sh`
+3. Review motivation results → make Day-3 go/no-go decision
+4. Start Objaverse render job: `sbatch scripts/slurm_render_objaverse.sh`
+
+**Notes for user:**
+- **URGENT before Day 3 gate (Apr 19):** Submit motivation job after getting GPU allocation:
+    `cd /scratch/s224696943/pgr_3d && sbatch scripts/slurm_motivation.sh`
+  Output in `outputs/motivation/clip_drift_summary.png` — if drift > 0.05, green light.
+- Parallel: also submit baseline job to get Wonder3D numbers while waiting for motivation result.
+- Objaverse rsync likely still running — check with `jobs` or `rsync` process status.
+
+---
+
 ### Day 1 — 2026-04-17
 
 **Planned:** Env setup, feature extractor, metrics, baseline run on 5 GSO objects.

@@ -16,6 +16,7 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 PRETRAINED_MODEL   = "/scratch/s224696943/wonder3d-v1.0"
 FRONT_IMG_TEMPLATE = "/weka/s224696943/3DRAV/data/expB/{object}/B/front.png"
+FRONT_IMG_FALLBACK = "/scratch/s224696943/pgr_3d/data/gso_fronts/{object}.png"
 SAVE_DIR_TEMPLATE  = "/scratch/s224696943/pgr_3d/outputs/wonder3d_baseline/{object}"
 WONDER3D_OUT_ROOT  = "/scratch/s224696943/Wonder3D/outputs/wonder3D-finetune/vis_0"
 CONFIG_OUT_DIR     = Path("/scratch/s224696943/pgr_3d/configs")
@@ -70,19 +71,28 @@ TEMPLATE = {
 }
 
 
-def gen_config(obj: str) -> Path:
+def resolve_front_image(obj: str) -> str:
+    """Return the front image path, preferring WEKA with fallback to local copy."""
+    weka = Path(FRONT_IMG_TEMPLATE.format(object=obj))
+    if weka.exists():
+        return str(weka)
+    local = Path(FRONT_IMG_FALLBACK.format(object=obj))
+    if local.exists():
+        return str(local)
+    return None
+
+
+def gen_config(obj: str, front_path: str) -> Path:
     cfg = dict(TEMPLATE)
     cfg["validation_dataset"] = dict(TEMPLATE["validation_dataset"])
-    cfg["validation_dataset"]["single_image"] = {
-        "front": FRONT_IMG_TEMPLATE.format(object=obj)
-    }
+    cfg["validation_dataset"]["single_image"] = {"front": front_path}
     cfg["save_dir"] = SAVE_DIR_TEMPLATE.format(object=obj)
 
     CONFIG_OUT_DIR.mkdir(parents=True, exist_ok=True)
     out_path = CONFIG_OUT_DIR / f"gso_{obj}.yaml"
     with open(out_path, "w") as f:
         yaml.dump(cfg, f, default_flow_style=False, sort_keys=False)
-    print(f"  wrote {out_path}")
+    print(f"  wrote {out_path}  (front: {front_path})")
     return out_path
 
 
@@ -93,11 +103,11 @@ def main():
 
     print(f"Generating configs for {len(args.objects)} objects...")
     for obj in args.objects:
-        front = Path(FRONT_IMG_TEMPLATE.format(object=obj))
-        if not front.exists():
-            print(f"  [WARN] Missing front image: {front} — skipping {obj}")
+        front = resolve_front_image(obj)
+        if front is None:
+            print(f"  [WARN] No front image found for {obj} (checked WEKA + local) — skipping")
             continue
-        gen_config(obj)
+        gen_config(obj, front)
     print("Done.")
 
 
