@@ -8,6 +8,12 @@ wandb/
 logs/
 *.log
 
+# Local/generated datasets. Keep lightweight manifests/configs in git, but not
+# rendered Objaverse/GSO data folders.
+data/objaverse*/
+data/gso30_renders/
+data/gso30_eval_novelviews/
+
 .env
 .venv/
 venv/

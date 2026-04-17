@@ -1,0 +1,15 @@
+# Real-world / in-the-wild captured objects (NOT official GSO).
+# Suitable for qualitative evaluation only (no GT mesh → cannot compute CD/F-score).
+# Do NOT include in paper's main quantitative evaluation table.
+# Analogous to Wonder3D paper's "in-the-wild" qualitative section.
+1st
+2nd
+3rd
+4th
+5th
+6th
+11st
+12nd
+13rd
+14th
+15th

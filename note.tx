@@ -1,0 +1,38 @@
+We investigate how CLIP-semantic information manifests in 
+Wonder3D's intermediate UNet features during the denoising 
+process. For each of 30 GSO test objects, we run Wonder3D 
+inference with 50 DDIM steps and extract feature activations 
+at three decoder blocks (up_blocks[1,2,3]) both before 
+(PRE-CD) and after (POST-CD) the cross-domain attention 
+module. At each timestep, we compute Linear CKA between the 
+front-view feature representation and the input image's CLIP 
+embedding, across all 30 objects (bootstrap 95% CI, n=1000).
+
+Figure X shows CKA curves for all 6 block-location 
+combinations. Three observations emerge:
+
+1. CLIP information persists throughout denoising. CKA 
+   values remain stable across all 50 timesteps without 
+   significant drift, ranging from 0.36 (deep post-CD) to 
+   0.86 (shallow pre/post-CD).
+
+2. Shallow decoder blocks encode CLIP more strongly than 
+   deep blocks. up_blocks[1] consistently achieves CKA ≈ 
+   0.83-0.86, while up_blocks[3] drops to 0.36-0.50. This 
+   is consistent with standard observations that shallow 
+   features capture abstract semantic content while deeper 
+   features handle local/textural details.
+
+3. Cross-domain attention slightly shifts CKA: shallow 
+   features (up_blocks[1,2]) maintain high alignment 
+   post-CD, while deep features (up_blocks[3]) drop 
+   slightly post-CD — suggesting cross-domain attention 
+   introduces geometry information from the normal stream 
+   that trades off against CLIP-semantic alignment at 
+   fine-grained levels.
+
+These findings support the design of our perception-guided 
+readout framework: Wonder3D features reliably encode 
+extractable CLIP-semantic information, making readout 
+heads feasible. Our CaptionHead operates on shallow 
+post-CD features where CLIP alignment is highest.

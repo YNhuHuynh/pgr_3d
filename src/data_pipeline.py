@@ -49,8 +49,9 @@ BG_COLOR            = (1.0, 1.0, 1.0, 1.0)   # white background
 # Stage 1: Rendering via BlenderProc
 # ---------------------------------------------------------------------------
 
-RENDER_SCRIPT = Path(__file__).parent.parent / "scripts" / "blender_render_6views.py"
-BLENDER_BIN   = Path("/scratch/s224696943/blender/blender-3.3.0-linux-x64/blender")
+RENDER_SCRIPT    = Path(__file__).parent.parent / "scripts" / "blender_render_6views.py"
+BLENDER_BIN      = Path("/scratch/s224696943/blender/blender-3.3.0-linux-x64/blender")
+BLENDERPROC_BIN  = Path("/scratch/s224696943/.conda/envs/pgr3d/bin/blenderproc")
 
 
 def render_object(
@@ -59,7 +60,11 @@ def render_object(
     uid: str,
     resolution: int = RENDER_RES,
     ortho_scale: float = ORTHO_SCALE,
+    rotate_x: float = 0.0,
+    rotate_z: float = 0.0,
+    num_views: int = N_VIEWS,
     blender_bin: str = str(BLENDER_BIN),
+    blenderproc_bin: str = str(BLENDERPROC_BIN),
 ) -> bool:
     """
     Render 6 orthographic views of a GLB object using BlenderProc.
@@ -71,12 +76,15 @@ def render_object(
     out_path.mkdir(parents=True, exist_ok=True)
 
     # Check if already rendered
-    if all((out_path / f"rgb_{i}.png").exists() for i in range(N_VIEWS)):
+    if all((out_path / f"rgb_{i}.png").exists() for i in range(num_views)):
         return True   # cached
 
+    # --custom-blender-path tells BlenderProc to use an existing Blender
+    # installation instead of downloading one.  Takes the DIRECTORY containing
+    # the blender binary (not the binary path itself).
     cmd = [
-        "blenderproc", "run",
-        f"--blender-install-path={blender_bin}",
+        blenderproc_bin, "run",
+        f"--custom-blender-path={Path(blender_bin).parent}",
         str(RENDER_SCRIPT),
         "--object_path", str(glb_path),
         "--output_dir",  str(out_path),
@@ -84,10 +92,16 @@ def render_object(
         "--resolution",  str(resolution),
         "--ortho_scale", str(ortho_scale),
     ]
+    if rotate_x != 0.0:
+        cmd += ["--rotate_x", str(rotate_x)]
+    if rotate_z != 0.0:
+        cmd += ["--rotate_z", str(rotate_z)]
+    if num_views != N_VIEWS:
+        cmd += ["--num_views", str(num_views)]
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
         if result.returncode != 0:
-            print(f"[WARN] Render failed for {uid}: {result.stderr[:200]}")
+            print(f"[WARN] Render failed for {uid}: {result.stderr}")
             return False
         return True
     except subprocess.TimeoutExpired:

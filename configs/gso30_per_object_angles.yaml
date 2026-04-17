@@ -1,0 +1,52 @@
+# Per-object rotation corrections for GSO-30 objects.
+#
+# Source: IPS3D/00.IMPORTANT_runIPS3D_mesh_B_plus_2.sh  get_angle_deg()
+# Formula:
+#   rotate_x = -90        (OBJ Y-up -> Blender Z-up correction, ALL objects)
+#   rotate_z = -base_angle (aligns each object's front face with Wonder3D +X
+#                           camera axis, i.e. azimuth=0 view)
+#
+# Derivation:
+#   IPS3D original: rotate_z = 90 - base_angle  -> front lands at +Y (azimuth=90)
+#   We want front at +X (azimuth=0), so add -90 => rotate_z = -base_angle
+#
+# base_angle groups (from IPS3D get_angle_deg):
+#   270 -> rotate_z =  -270 ≡ +90  : alarm backpack blocks chicken grandfather
+#                                     grandmother lion lunch_bag mario oil soap sofa
+#   225 -> rotate_z =  -225 ≡ +135 : school_bus2 shoe train turtle
+#   180 -> rotate_z =  -180         : elephant school_bus1
+#   112.5 -> rotate_z = -112.5      : sorter
+#     0 -> rotate_z =    0          : bell cream hat leather shoe1 shoe2 shoe3
+#                                     sorting_board stucking_cups teapot toaster
+
+objects:
+  alarm:         {rotate_x: -90, rotate_z:   90.0}
+  backpack:      {rotate_x: -90, rotate_z:   90.0}
+  bell:          {rotate_x: -90, rotate_z:    0.0}
+  blocks:        {rotate_x: -90, rotate_z:   90.0}
+  chicken:       {rotate_x: -90, rotate_z:   90.0}
+  cream:         {rotate_x: -90, rotate_z:    0.0}
+  elephant:      {rotate_x: -90, rotate_z: -180.0}
+  grandfather:   {rotate_x: -90, rotate_z:   90.0}
+  grandmother:   {rotate_x: -90, rotate_z:   90.0}
+  hat:           {rotate_x: -90, rotate_z:    0.0}
+  leather:       {rotate_x: -90, rotate_z:    0.0}
+  lion:          {rotate_x: -90, rotate_z:   90.0}
+  lunch_bag:     {rotate_x: -90, rotate_z:   90.0}
+  mario:         {rotate_x: -90, rotate_z:   90.0}
+  oil:           {rotate_x: -90, rotate_z:   90.0}
+  school_bus1:   {rotate_x: -90, rotate_z: -180.0}
+  school_bus2:   {rotate_x: -90, rotate_z:  135.0}
+  shoe:          {rotate_x: -90, rotate_z:  135.0}
+  shoe1:         {rotate_x: -90, rotate_z:    0.0}
+  shoe2:         {rotate_x: -90, rotate_z:    0.0}
+  shoe3:         {rotate_x: -90, rotate_z:    0.0}
+  soap:          {rotate_x: -90, rotate_z:   90.0}
+  sofa:          {rotate_x: -90, rotate_z:   90.0}
+  sorter:        {rotate_x: -90, rotate_z: -112.5}
+  sorting_board: {rotate_x: -90, rotate_z:    0.0}
+  stucking_cups: {rotate_x: -90, rotate_z:    0.0}
+  teapot:        {rotate_x: -90, rotate_z:    0.0}
+  toaster:       {rotate_x: -90, rotate_z:    0.0}
+  train:         {rotate_x: -90, rotate_z:  135.0}
+  turtle:        {rotate_x: -90, rotate_z:  135.0}

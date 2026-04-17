@@ -41,9 +41,10 @@ CLIP_DIM           = 768                 # CLIP ViT-L/14 image embedding dim
 # ---------------------------------------------------------------------------
 class _GroupNormConv2d(nn.Conv2d):
     """Conv2d with GroupNorm baked in, for weight-init compatibility."""
-    def __init__(self, *args, num_norm_groups: int = 32, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.norm = nn.GroupNorm(num_norm_groups, kwargs["out_channels"])
+    def __init__(self, in_channels: int, out_channels: int, *args,
+                 num_norm_groups: int = 32, **kwargs):
+        super().__init__(in_channels, out_channels, *args, **kwargs)
+        self.norm = nn.GroupNorm(num_norm_groups, out_channels)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.norm(super().forward(x))
@@ -313,6 +314,66 @@ class DepthHead(nn.Module):
 
 
 # ---------------------------------------------------------------------------
+# CaptionHead
+# ---------------------------------------------------------------------------
+T5_DIM = 768   # T5-base encoder output dim (same as CLIP_DIM, kept separate for clarity)
+
+
+class CaptionHead(nn.Module):
+    """
+    Predicts mean-pooled T5-base embedding from aggregated multi-view features.
+
+    Architecture:
+        [BV, projection_dim, S, S]
+        → global avg pool → [BV, projection_dim]
+        → mean over V views → [B, projection_dim]
+        → MLP(projection_dim → t5_dim → t5_dim) → [B, t5_dim]
+
+    Loss: 1 - cosine_similarity(pred, target_t5_emb)
+    Target: mean-pooled, L2-normalised T5-base embedding [B, 768]
+    """
+
+    def __init__(
+        self,
+        aggregation_network: AggregationNetwork,
+        num_views: int = 6,
+        t5_dim: int = T5_DIM,
+        projection_dim: int = PROJECTION_DIM,
+    ):
+        super().__init__()
+        self.aggregation_network = aggregation_network
+        self.num_views = num_views
+
+        self.mlp = nn.Sequential(
+            nn.Linear(projection_dim, t5_dim),
+            nn.GELU(),
+            nn.Linear(t5_dim, t5_dim),
+        )
+
+    def forward(
+        self,
+        features: List[torch.Tensor],          # [BV, C_l, H_l, W_l] × 3
+        emb: Optional[torch.Tensor] = None,    # [BV, emb_channels]
+        batch_size: Optional[int] = None,
+    ) -> torch.Tensor:
+        """Returns predicted T5 embeddings [B, t5_dim]."""
+        agg    = self.aggregation_network(features, emb)   # [BV, proj_dim, S, S]
+        pooled = agg.mean(dim=[-2, -1])                    # [BV, proj_dim]
+        BV = pooled.shape[0]
+        V  = self.num_views
+        B  = BV // V if batch_size is None else batch_size
+        pooled = pooled.view(B, V, -1).mean(dim=1)         # [B, proj_dim]
+        return self.mlp(pooled)                             # [B, t5_dim]
+
+    @staticmethod
+    def loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """1 - mean cosine similarity. Both [B, t5_dim]."""
+        pred_n   = F.normalize(pred,   dim=-1)
+        target_n = F.normalize(target, dim=-1)
+        return (1 - (pred_n * target_n).sum(dim=-1)).mean()
+
+
+# ---------------------------------------------------------------------------
 # Factory: build a matched pair (aggregation_net, head)
 # ---------------------------------------------------------------------------
 
@@ -331,6 +392,15 @@ def build_depth_head(target_size: int = 256, device: str = "cuda") -> DepthHead:
         projection_dim=PROJECTION_DIM,
     )
     head = DepthHead(agg, target_size=target_size)
+    return head.to(device)
+
+
+def build_caption_head(num_views: int = 6, device: str = "cuda") -> CaptionHead:
+    agg = AggregationNetwork(
+        feature_dims=HOOK_CHANNELS,
+        projection_dim=PROJECTION_DIM,
+    )
+    head = CaptionHead(agg, num_views=num_views)
     return head.to(device)
 
 

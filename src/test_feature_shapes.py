@@ -87,6 +87,26 @@ def main():
     print("  OK:  pipeline loaded")
 
     # ------------------------------------------------------------------
+    # CPU fallback: MVAttnProcessor (no xformers) doesn't accept the
+    # sparse_mv_attention / mvcd_attention kwargs that BasicTransformerBlock
+    # passes.  Monkey-patch it to forward only the kwargs it understands.
+    if device == "cpu":
+        try:
+            from mvdiffusion.models.transformer_mv2d import MVAttnProcessor
+            _orig_mv_call = MVAttnProcessor.__call__
+            def _patched_mv_call(self, attn, hidden_states, **kwargs):
+                _accepted = {"encoder_hidden_states", "attention_mask",
+                             "temb", "num_views", "multiview_attention"}
+                return _orig_mv_call(
+                    self, attn, hidden_states,
+                    **{k: v for k, v in kwargs.items() if k in _accepted}
+                )
+            MVAttnProcessor.__call__ = _patched_mv_call
+            print("  NOTE: CPU mode — patched MVAttnProcessor to accept sparse_mv_attention kwargs")
+        except Exception as _e:
+            print(f"  NOTE: Could not patch MVAttnProcessor ({_e}); continuing anyway")
+
+    # ------------------------------------------------------------------
     print("\n[2/6] Testing UNet forward hooks ...")
     from feature_extractor import Wonder3DFeatureExtractor
 

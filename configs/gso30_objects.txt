@@ -1,0 +1,32 @@
+# GSO-30 canonical subset, sourced from /scratch/s224696943/GSO/gso/,
+# matching SyncDreamer eval protocol (30 objects, spanning everyday items to animals)
+alarm
+backpack
+bell
+blocks
+chicken
+cream
+elephant
+grandfather
+grandmother
+hat
+leather
+lion
+lunch_bag
+mario
+oil
+school_bus1
+school_bus2
+shoe
+shoe1
+shoe2
+shoe3
+soap
+sofa
+sorter
+sorting_board
+stucking_cups
+teapot
+toaster
+train
+turtle

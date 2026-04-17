@@ -22,15 +22,15 @@ WONDER3D_OUT_ROOT  = "/scratch/s224696943/Wonder3D/outputs/wonder3D-finetune/vis
 CONFIG_OUT_DIR     = Path("/scratch/s224696943/pgr_3d/configs")
 
 # Full GSO-30 eval set (can override via --objects)
+# Canonical GSO-30 from /scratch/s224696943/GSO/gso/ (official Google Scanned Objects).
+# Real-world captured (1st–15th) excluded — no GT mesh, not reproducible.
 GSO_OBJECTS = [
-    "alarm", "backpack", "blocks", "chicken", "elephant",
-    "grandfather", "grandmother", "lion", "lunch_bag", "mario",
-    "oil", "school_bus1", "school_bus2", "shoe", "soap",
-    "sofa", "sorter", "train", "turtle",
-    # numbered objects (from existing gso folder)
-    "1st", "2nd", "3rd", "4th", "5th",
-    "6th", "11st", "12nd", "13rd", "14th",
-    "15th",
+    "alarm", "backpack", "bell", "blocks", "chicken",
+    "cream", "elephant", "grandfather", "grandmother", "hat",
+    "leather", "lion", "lunch_bag", "mario", "oil",
+    "school_bus1", "school_bus2", "shoe", "shoe1", "shoe2",
+    "shoe3", "soap", "sofa", "sorter", "sorting_board",
+    "stucking_cups", "teapot", "toaster", "train", "turtle",
 ]
 
 TEMPLATE = {

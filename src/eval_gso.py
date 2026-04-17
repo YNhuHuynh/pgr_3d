@@ -72,13 +72,15 @@ from metrics import mesh_metrics, image_metrics, append_mesh_csv, append_nvs_csv
 # ---------------------------------------------------------------------------
 # GSO objects in our eval set (30 objects matching SyncDreamer/Wonder3D paper)
 # ---------------------------------------------------------------------------
+# Canonical GSO-30 from /scratch/s224696943/GSO/gso/ (official Google Scanned Objects).
+# Real-world captured (1st–15th) excluded — no GT mesh, not reproducible.
 GSO_OBJECTS = [
-    "alarm", "backpack", "blocks", "chicken", "elephant",
-    "grandfather", "grandmother", "lion", "lunch_bag", "mario",
-    "oil", "school_bus1", "school_bus2", "shoe", "soap",
-    "sofa", "sorter", "train", "turtle",
-    "1st", "2nd", "3rd", "4th", "5th",
-    "6th", "11st", "12nd", "13rd", "14th", "15th",
+    "alarm", "backpack", "bell", "blocks", "chicken",
+    "cream", "elephant", "grandfather", "grandmother", "hat",
+    "leather", "lion", "lunch_bag", "mario", "oil",
+    "school_bus1", "school_bus2", "shoe", "shoe1", "shoe2",
+    "shoe3", "soap", "sofa", "sorter", "sorting_board",
+    "stucking_cups", "teapot", "toaster", "train", "turtle",
 ]
 
 # Per-object pre-rotation for GT mesh alignment (from 000.run_won3d.sh)

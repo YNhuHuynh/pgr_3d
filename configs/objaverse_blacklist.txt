@@ -1,0 +1,17 @@
+# Objaverse UIDs excluded from training.
+# These 11 GLBs failed blenderproc rendering on 2 separate passes
+# (render jobs 71819 initial + 71822 re-render with GLB hierarchy fix).
+# Root cause: likely corrupted or non-standard GLTF structure.
+# Decision: accept 174/200 training objects; blacklist these 11.
+# See docs/DATA_NOTES.md for full documentation.
+420e464e77a84be1a746b53b2444a53b
+66cdb12bb3f34cfebbc95f6d82e53c3f
+6725fa757760455a812f4684474c150a
+7a46c16e3fd1464ab598f6d6a5d17230
+9c127b07958343bba6d9f0fa41578272
+a0c216a7de774aba903f441d7899aa02
+c380debe912d4e14aab032c00a7af0da
+e074099f0ce948acb1c7b875fec45edf
+ee0fa270366d4b4cac309b9a790178e4
+eec42e4c8e674a4a83e414107fb0642b
+f98c3e7ff9da48989d743e718c69f335
